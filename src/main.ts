@@ -4,6 +4,7 @@ import { AppModule } from './modules/app.module';
 import { ConfigService } from '@nestjs/config';
 import { SecurityHeadersMiddleware } from '././middleware/security-headers.middleware';
 import { logger } from './common/logger/logger.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,6 +14,18 @@ async function bootstrap() {
   // Security Headers
   app.use(new SecurityHeadersMiddleware().use);
   app.getHttpAdapter().getInstance().disable('x-powered-by');
+
+  // Enable automatic validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Strip away non-whitelisted properties
+      transform: true, // Automatically transform payloads to be objects typed according to their DTO classes
+      forbidNonWhitelisted: true, // Throw errors if non-whitelisted values are provided
+      transformOptions: {
+        enableImplicitConversion: true, // Automatically convert primitive types
+      },
+    }),
+  );
 
   const configService = app.get(ConfigService);
 
