@@ -3,9 +3,13 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './modules/app.module';
 import { ConfigService } from '@nestjs/config';
 import { SecurityHeadersMiddleware } from '././middleware/security-headers.middleware';
+import { logger } from './common/logger/logger.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: logger,
+  });
+
   // Security Headers
   app.use(new SecurityHeadersMiddleware().use);
   app.getHttpAdapter().getInstance().disable('x-powered-by');
@@ -25,7 +29,7 @@ async function bootstrap() {
   // Server Setup
   const port = configService.get<number>('app.port', 3000);
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  logger.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();
