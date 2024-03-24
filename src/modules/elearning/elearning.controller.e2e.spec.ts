@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import { AppModule } from '../app.module';
-import { INestApplication } from '@nestjs/common';
+import {
+  BadRequestException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 
 describe('ElearningController (e2e)', () => {
   let app: INestApplication;
@@ -12,6 +16,16 @@ describe('ElearningController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        exceptionFactory: (errors) => new BadRequestException(errors),
+      }),
+    );
+
     await app.init();
   });
 
@@ -48,6 +62,46 @@ describe('ElearningController (e2e)', () => {
     expect(createdResponse.body.description).toEqual(newCourse.description);
     expect(createdResponse.body).toHaveProperty('id');
     expect(createdResponse.body).toHaveProperty('createdAt');
+  });
+
+  it('/POST courses should reject creation with incomplete data', async () => {
+    // GIVEN incomplete course data (missing required 'description')
+    const incompleteCourse = {
+      title: 'Incomplete Course',
+    };
+
+    // WHEN posting incomplete course data
+    const response = await request(app.getHttpServer())
+      .post('/courses')
+      .send(incompleteCourse);
+
+    // THEN expect a 400 Bad Request response
+    expect(response.status).toBe(400);
+    const errorMessages = response.body.message.flatMap((msg) =>
+      Object.values(msg.constraints),
+    );
+    expect(errorMessages).toContain('description should not be empty');
+  });
+
+  it('/POST courses should reject creation with invalid data types', async () => {
+    // GIVEN course data with invalid types (e.g., 'title' as a number)
+    const invalidCourse = {
+      title: 123,
+      description: 'A course with an invalid title type',
+    };
+
+    // WHEN posting data with invalid types
+    const response = await request(app.getHttpServer())
+      .post('/courses')
+      .send(invalidCourse);
+
+    // THEN expect a 400 Bad Request response
+    expect(response.status).toBe(400);
+    // Optionally check for specific error message
+    const errorMessages = response.body.message.flatMap((msg) =>
+      Object.values(msg.constraints),
+    );
+    expect(errorMessages).toContain('title must be a string');
   });
 
   it('/GET courses should retrieve a list with the created course', async () => {
@@ -104,6 +158,26 @@ describe('ElearningController (e2e)', () => {
     expect(updateResponse.status).toBe(200);
     expect(updateResponse.body.title).toEqual(updatedCourse.title);
     expect(updateResponse.body.description).toEqual(updatedCourse.description);
+  });
+
+  it('/PUT courses/:id should reject update with invalid data types', async () => {
+    // GIVEN a created course and invalid update data
+    const { body: createdCourse } = await request(app.getHttpServer())
+      .post('/courses')
+      .send({ title: 'Valid Title', description: 'Valid Description' });
+    const invalidUpdateData = { title: false };
+
+    // WHEN attempting to update the course with invalid data types
+    const updateResponse = await request(app.getHttpServer())
+      .put(`/courses/${createdCourse.id}`)
+      .send(invalidUpdateData);
+
+    // THEN expect a 400 Bad Request response
+    expect(updateResponse.status).toBe(400);
+    const errorMessages = updateResponse.body.message.flatMap((msg) =>
+      Object.values(msg.constraints),
+    );
+    expect(errorMessages).toContain('title must be a string');
   });
 
   it('/DELETE courses/:id should remove the course', async () => {
