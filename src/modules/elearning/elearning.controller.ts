@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -50,8 +51,13 @@ export class ElearningController {
   @ApiOperation({ summary: 'Get a course by id' })
   @ApiParam({ name: 'id', description: 'The course ID' })
   @ApiResponse({ status: 200, description: 'Found course', type: CourseDto })
+  @ApiResponse({ status: 404, description: 'Course not found' }) // Documenting the possible 404 response
   findOne(@Param('id') id: string): CourseDto {
-    return this.elearningService.findOne(id);
+    const course = this.elearningService.findOne(id);
+    if (!course) {
+      throw new NotFoundException(`Course with ID "${id}" not found`);
+    }
+    return course;
   }
 
   @Put(':id')
