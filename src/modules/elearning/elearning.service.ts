@@ -1,39 +1,45 @@
-// src/modules/elearning/elearning.service.ts
-
 import { Injectable } from '@nestjs/common';
-import { Course } from './interfaces/course.interface';
+import { CourseDto } from './dtos/course.dto';
 
 @Injectable()
 export class ElearningService {
-  private readonly courses: Course[] = [];
+  private readonly courses: CourseDto[] = [];
 
-  findAll(): Course[] {
+  findAll(): CourseDto[] {
     return this.courses;
   }
 
-  create(course: Course): Course {
-    this.courses.push(course);
-    return course;
+  create(courseDto: CourseDto): CourseDto {
+    this.courses.push(courseDto);
+    return courseDto;
   }
 
-  findOne(id: string): Course {
+  findOne(id: string): CourseDto {
     return this.courses.find((course) => course.id === id);
   }
 
-  update(id: string, course: Course): Course {
-    const index = this.courses.findIndex((c) => c.id === id);
-    this.courses[index] = course;
-    return course;
+  update(id: string, courseDto: CourseDto): CourseDto {
+    const index = this.courses.findIndex((course) => course.id === id);
+    if (index !== -1) {
+      this.courses[index] = courseDto;
+      return courseDto;
+    }
+    return null; // Consider how you want to handle not found cases
   }
 
-  patch(id: string, course: Partial<Course>): Course {
-    const index = this.courses.findIndex((c) => c.id === id);
-    this.courses[index] = { ...this.courses[index], ...course };
-    return this.courses[index];
+  patch(id: string, courseUpdate: Partial<CourseDto>): CourseDto {
+    const course = this.findOne(id);
+    if (course) {
+      Object.assign(course, courseUpdate);
+      return course;
+    }
+    return null; // Consider how you want to handle not found cases
   }
 
   delete(id: string): void {
-    const index = this.courses.findIndex((c) => c.id === id);
-    this.courses.splice(index, 1);
+    const index = this.courses.findIndex((course) => course.id === id);
+    if (index !== -1) {
+      this.courses.splice(index, 1);
+    }
   }
 }
