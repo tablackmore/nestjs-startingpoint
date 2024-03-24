@@ -49,7 +49,6 @@ describe('ElearningController', () => {
         id: '1',
         title: 'Test Course',
         description: 'This is a test course',
-        author: 'Test Author',
         createdAt: new Date(),
       };
       jest.spyOn(service, 'create').mockImplementation(() => course);
@@ -64,7 +63,6 @@ describe('ElearningController', () => {
         id: '1',
         title: 'Test Course',
         description: 'This is a test course',
-        author: 'Test Author',
         createdAt: new Date(),
       };
       jest.spyOn(service, 'findOne').mockImplementation(() => course);
@@ -79,7 +77,6 @@ describe('ElearningController', () => {
         id: '1',
         title: 'Updated Course',
         description: 'This is an updated test course',
-        author: 'Updated Author',
         createdAt: new Date(),
       };
       jest.spyOn(service, 'update').mockImplementation(() => course);
@@ -94,7 +91,6 @@ describe('ElearningController', () => {
         id: '1',
         title: 'Patched Course',
         description: 'This is a patched test course',
-        author: 'Patched Author',
         createdAt: new Date(),
       };
       jest.spyOn(service, 'patch').mockImplementation(() => course);

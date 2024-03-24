@@ -19,7 +19,6 @@ describe('ElearningService', () => {
         id: '1',
         title: 'Test Course',
         description: 'This is a test course',
-        author: 'Test Author',
         createdAt: now,
       };
       service.create(course);
@@ -32,14 +31,12 @@ describe('ElearningService', () => {
         id: '1',
         title: 'Test Course 1',
         description: 'This is a test course',
-        author: 'Test Author 1',
         createdAt: now,
       };
       const course2: Course = {
         id: '2',
         title: 'Test Course 2',
         description: 'This is another test course',
-        author: 'Test Author 2',
         createdAt: now,
       };
       service.create(course1);
@@ -57,14 +54,12 @@ describe('ElearningService', () => {
         id: '1',
         title: 'Original Test Course',
         description: 'This is a test course',
-        author: 'Original Author',
         createdAt: now,
       };
       service.create(course);
       const updatedCourse: Course = {
         ...course,
         title: 'Updated Test Course',
-        author: 'Updated Author',
       };
       service.update('1', updatedCourse);
       expect(service.findOne('1')).toEqual(updatedCourse);
@@ -76,7 +71,6 @@ describe('ElearningService', () => {
         id: '1',
         title: 'Original Test Course',
         description: 'This is a test course',
-        author: 'Original Author',
         createdAt: now,
       };
       service.create(course);
@@ -92,7 +86,6 @@ describe('ElearningService', () => {
         id: '1',
         title: 'Test Course to Delete',
         description: 'This course will be deleted',
-        author: 'Deletion Author',
         createdAt: new Date(),
       };
       service.create(course);

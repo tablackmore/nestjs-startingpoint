@@ -1,5 +1,3 @@
-// src/modules/elearning/elearning.controller.ts
-
 import {
   Body,
   Controller,
@@ -11,38 +9,87 @@ import {
   Put,
 } from '@nestjs/common';
 import { ElearningService } from './elearning.service';
-import { Course } from './interfaces/course.interface';
+import { CourseDto } from './dtos/course.dto';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 
+@ApiTags('courses')
 @Controller('courses')
 export class ElearningController {
   constructor(private readonly elearningService: ElearningService) {}
 
   @Get()
-  findAll(): Course[] {
+  @ApiOperation({ summary: 'Retrieve all courses' })
+  @ApiResponse({
+    status: 200,
+    type: [CourseDto],
+    description: 'Return all courses',
+  })
+  findAll(): CourseDto[] {
     return this.elearningService.findAll();
   }
 
   @Post()
-  create(@Body() course: Course): Course {
-    return this.elearningService.create(course);
+  @ApiOperation({ summary: 'Create a new course' })
+  @ApiBody({ type: CourseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'The course has been successfully created.',
+    type: CourseDto,
+  })
+  create(@Body() courseDto: CourseDto): CourseDto {
+    return this.elearningService.create(courseDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Course {
+  @ApiOperation({ summary: 'Get a course by id' })
+  @ApiParam({ name: 'id', description: 'The course ID' })
+  @ApiResponse({ status: 200, description: 'Found course', type: CourseDto })
+  findOne(@Param('id') id: string): CourseDto {
     return this.elearningService.findOne(id);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() course: Course): Course {
-    return this.elearningService.update(id, course);
+  @ApiOperation({ summary: 'Update a course' })
+  @ApiParam({ name: 'id', description: 'The course ID' })
+  @ApiBody({ type: CourseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The course has been successfully updated.',
+    type: CourseDto,
+  })
+  update(@Param('id') id: string, @Body() courseDto: CourseDto): CourseDto {
+    return this.elearningService.update(id, courseDto);
   }
 
   @Patch(':id')
-  patch(@Param('id') id: string, @Body() course: Partial<Course>): Course {
-    return this.elearningService.patch(id, course);
+  @ApiOperation({ summary: 'Partially update a course' })
+  @ApiParam({ name: 'id', description: 'The course ID' })
+  @ApiBody({ type: CourseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'The course has been successfully updated.',
+    type: CourseDto,
+  })
+  patch(
+    @Param('id') id: string,
+    @Body() courseDto: Partial<CourseDto>,
+  ): CourseDto {
+    return this.elearningService.patch(id, courseDto);
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a course' })
+  @ApiParam({ name: 'id', description: 'The course ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'The course has been successfully deleted.',
+  })
   delete(@Param('id') id: string): void {
     this.elearningService.delete(id);
   }
