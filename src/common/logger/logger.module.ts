@@ -1,42 +1,26 @@
 import { Module, Global } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import DailyRotateFile = require('winston-daily-rotate-file');
-
-// Create the logger instance
-export const logger = WinstonModule.createLogger({
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.colorize(),
-        winston.format.printf(
-          ({ level, message, timestamp }) =>
-            `${timestamp} ${level}: ${message}`,
-        ),
-      ),
-    }),
-    // Additional transports or configuration as needed
-  ],
-});
+import * as DailyRotateFile from 'winston-daily-rotate-file';
 
 @Global()
 @Module({
   imports: [
     WinstonModule.forRoot({
-      // Logger for NestJS context, setup here; though we're using the exported instance.
+      // Setting log level based on environment variable or default to 'info'
       level: process.env.LOG_LEVEL || 'info',
-      // Specify the default Meta data to be added to each log
+      // Specify default meta data to be added to each log
       defaultMeta: { service: 'user-service' },
-      // Format of the log message
+      // Format for log messages
       format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.errors({ stack: true }), // Properly log error stacks
+        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.errors({ stack: true }), // Ensures stack trace is captured
+        winston.format.splat(),
         winston.format.json(),
       ),
-      // Transports (where to log)
+      // Configuring transports (destinations for logging)
       transports: [
-        // Console Transport
+        // Console Transport Configuration
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.timestamp(),
@@ -46,20 +30,20 @@ export const logger = WinstonModule.createLogger({
             ),
           ),
         }),
-        // Daily Rotate File Transport
+        // Daily Rotate File Transport Configuration
         new DailyRotateFile({
           filename: 'application-%DATE%.log',
-          datePattern: 'YYYY-MM-DD-HH',
+          datePattern: 'YYYY-MM-DD',
           zippedArchive: true,
           maxSize: '20m',
           maxFiles: '14d',
-          dirname: process.env.LOG_DIR || 'logs',
+          dirname: process.env.LOG_DIR || './logs',
         }),
       ],
-      // Optionally: Silence all logs (useful in testing environments)
+      // Silence all logs in test environment
       silent: process.env.NODE_ENV === 'test',
     }),
   ],
-  exports: [WinstonModule], // Export WinstonModule if you want to inject the logger into your services
+  exports: [WinstonModule], // Export WinstonModule to make it injectable in other modules
 })
 export class LoggerModule {}
