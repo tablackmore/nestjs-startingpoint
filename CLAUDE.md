@@ -8,14 +8,14 @@ NestJS e-learning API starter project built with TypeScript. Provides a RESTful 
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18
-- **Framework**: NestJS 10
-- **Language**: TypeScript 5
-- **Testing**: Jest 29 + Supertest
-- **Linting**: ESLint 8 (TypeScript plugin) + Prettier 3
+- **Runtime**: Node.js 18+
+- **Framework**: NestJS 11
+- **Language**: TypeScript 5.9
+- **Testing**: Jest 30 + Supertest 7
+- **Linting**: ESLint 9 (flat config, typescript-eslint) + Prettier 3
 - **Logging**: Winston (via nest-winston) with daily rotate file
-- **Validation**: class-validator + class-transformer via NestJS ValidationPipe
-- **API Docs**: Swagger/OpenAPI via @nestjs/swagger
+- **Validation**: class-validator 0.15 + class-transformer via NestJS ValidationPipe
+- **API Docs**: Swagger/OpenAPI via @nestjs/swagger 11
 - **Container**: Docker (node:18.12.0 base image)
 
 ## Commands
@@ -114,9 +114,9 @@ When adding new features, follow these patterns:
 - Trailing commas: `all`
 
 ### ESLint
-- Parser: `@typescript-eslint/parser`
-- Extends: `plugin:@typescript-eslint/recommended` + `plugin:prettier/recommended`
-- Disabled rules: `interface-name-prefix`, `explicit-function-return-type`, `explicit-module-boundary-types`, `no-explicit-any`
+- Uses flat config format (`eslint.config.mjs`)
+- Based on `typescript-eslint` recommended config + `eslint-plugin-prettier/recommended`
+- Disabled rules: `explicit-function-return-type`, `explicit-module-boundary-types`, `no-explicit-any`
 
 ### TypeScript
 - Target: ES2021, Module: CommonJS
