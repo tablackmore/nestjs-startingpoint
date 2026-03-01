@@ -1,5 +1,5 @@
+import { NotFoundException } from '@nestjs/common';
 import { ElearningService } from './elearning.service';
-import { Course } from './interfaces/course.interface';
 
 describe('ElearningService', () => {
   let service: ElearningService;
@@ -14,83 +14,143 @@ describe('ElearningService', () => {
 
   describe('create and find operations', () => {
     it('should create a course and find it by id', () => {
-      const now = new Date();
-      const course: Course = {
-        id: '1',
+      // GIVEN
+      const input = {
         title: 'Test Course',
         description: 'This is a test course',
-        createdAt: now,
       };
-      service.create(course);
-      expect(service.findOne('1')).toEqual(course);
+
+      // WHEN
+      const created = service.create(input);
+
+      // THEN
+      expect(created.id).toBeDefined();
+      expect(created.createdAt).toBeDefined();
+      expect(service.findOne(created.id)).toEqual(created);
     });
 
     it('should return all courses', () => {
-      const now = new Date();
-      const course1: Course = {
-        id: '1',
+      // GIVEN
+      const course1 = service.create({
         title: 'Test Course 1',
         description: 'This is a test course',
-        createdAt: now,
-      };
-      const course2: Course = {
-        id: '2',
+      });
+      const course2 = service.create({
         title: 'Test Course 2',
         description: 'This is another test course',
-        createdAt: now,
-      };
-      service.create(course1);
-      service.create(course2);
-      expect(service.findAll()).toEqual(
-        expect.arrayContaining([course1, course2]),
+      });
+
+      // WHEN
+      const all = service.findAll();
+
+      // THEN
+      expect(all).toEqual(expect.arrayContaining([course1, course2]));
+    });
+
+    it('should return a copy of the courses array', () => {
+      // GIVEN
+      service.create({
+        title: 'Test Course',
+        description: 'This is a test course',
+      });
+
+      // WHEN
+      const result = service.findAll();
+      result.push({
+        id: 'injected',
+        title: 'Injected',
+        description: 'Should not appear',
+        createdAt: new Date(),
+      });
+
+      // THEN
+      expect(service.findAll()).toHaveLength(1);
+    });
+
+    it('should throw NotFoundException for non-existing course', () => {
+      // GIVEN / WHEN / THEN
+      expect(() => service.findOne('non-existing-id')).toThrow(
+        NotFoundException,
       );
     });
   });
 
   describe('update and patch operations', () => {
     it('should update a course', () => {
-      const now = new Date();
-      const course: Course = {
-        id: '1',
+      // GIVEN
+      const created = service.create({
         title: 'Original Test Course',
         description: 'This is a test course',
-        createdAt: now,
-      };
-      service.create(course);
-      const updatedCourse: Course = {
-        ...course,
+      });
+
+      // WHEN
+      const updated = service.update(created.id, {
         title: 'Updated Test Course',
-      };
-      service.update('1', updatedCourse);
-      expect(service.findOne('1')).toEqual(updatedCourse);
+        description: 'Updated description',
+      });
+
+      // THEN
+      expect(updated.title).toEqual('Updated Test Course');
+      expect(updated.id).toEqual(created.id);
+      expect(updated.createdAt).toEqual(created.createdAt);
+    });
+
+    it('should throw NotFoundException when updating non-existing course', () => {
+      // GIVEN / WHEN / THEN
+      expect(() =>
+        service.update('non-existing-id', {
+          title: 'Title',
+          description: 'Description',
+        }),
+      ).toThrow(NotFoundException);
     });
 
     it('should patch a course', () => {
-      const now = new Date();
-      const course: Course = {
-        id: '1',
+      // GIVEN
+      const created = service.create({
         title: 'Original Test Course',
         description: 'This is a test course',
-        createdAt: now,
-      };
-      service.create(course);
+      });
       const patch = { title: 'Patched Test Course' };
-      service.patch('1', patch);
-      expect(service.findOne('1').title).toEqual(patch.title);
+
+      // WHEN
+      service.patch(created.id, patch);
+
+      // THEN
+      expect(service.findOne(created.id).title).toEqual(patch.title);
+      expect(service.findOne(created.id).description).toEqual(
+        'This is a test course',
+      );
+    });
+
+    it('should throw NotFoundException when patching non-existing course', () => {
+      // GIVEN / WHEN / THEN
+      expect(() =>
+        service.patch('non-existing-id', { title: 'Title' }),
+      ).toThrow(NotFoundException);
     });
   });
 
   describe('delete operation', () => {
     it('should delete a course', () => {
-      const course: Course = {
-        id: '1',
+      // GIVEN
+      const created = service.create({
         title: 'Test Course to Delete',
         description: 'This course will be deleted',
-        createdAt: new Date(),
-      };
-      service.create(course);
-      service.delete('1');
-      expect(service.findOne('1')).toBeUndefined();
+      });
+
+      // WHEN
+      service.delete(created.id);
+
+      // THEN
+      expect(() => service.findOne(created.id)).toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException when deleting non-existing course', () => {
+      // GIVEN / WHEN / THEN
+      expect(() => service.delete('non-existing-id')).toThrow(
+        NotFoundException,
+      );
     });
   });
 });

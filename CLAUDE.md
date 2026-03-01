@@ -16,7 +16,7 @@ NestJS e-learning API starter project built with TypeScript. Provides a RESTful 
 - **Logging**: Winston (via nest-winston) with daily rotate file
 - **Validation**: class-validator 0.15 + class-transformer via NestJS ValidationPipe
 - **API Docs**: Swagger/OpenAPI via @nestjs/swagger 11
-- **Container**: Docker (node:18.12.0 base image)
+- **Container**: Docker (multi-stage, node:22-slim)
 
 ## Commands
 
@@ -57,37 +57,40 @@ src/
 ├── middleware/
 │   └── security-headers.middleware.ts  # Security headers (CSP, HSTS, X-Frame-Options, etc.)
 └── modules/
-    ├── app.module.ts                # Root module (imports ConfigModule, ElearningModule)
+    ├── app.module.ts                # Root module (imports ConfigModule, LoggerModule, ElearningModule)
     └── elearning/
         ├── elearning.module.ts      # Feature module
         ├── elearning.controller.ts  # REST controller with Swagger decorators
         ├── elearning.service.ts     # Business logic (in-memory CRUD)
         ├── elearning.controller.spec.ts  # E2E-style tests using Supertest
         ├── elearning.service.spec.ts     # Unit tests for service
-        ├── dtos/
-        │   └── course.dto.ts        # DTO with class-validator + Swagger decorators
-        └── interfaces/
-            └── course.interface.ts  # TypeScript interface for Course entity
+        └── dtos/
+            ├── course.dto.ts        # Response DTO with Swagger decorators
+            ├── create-course.dto.ts # Input DTO for creation with class-validator
+            └── update-course.dto.ts # Input DTO for partial updates with class-validator
 ```
 
 ## Architecture Patterns
 
 ### Module Organization
-Each feature is a self-contained NestJS module with its own controller, service, DTOs, and interfaces. The root `AppModule` imports feature modules and `ConfigModule`.
+Each feature is a self-contained NestJS module with its own controller, service, and DTOs. The root `AppModule` imports feature modules, `ConfigModule` (global), and `LoggerModule` (global).
 
 ### Controller Pattern
 - Controllers use `@ApiTags`, `@ApiOperation`, `@ApiResponse`, `@ApiParam`, `@ApiBody` decorators for full Swagger documentation
 - Route parameters use NestJS `@Param()` and `@Body()` decorators
-- Controllers throw `NotFoundException` for missing resources
+- All endpoints that accept an `:id` param document a 404 response
 
 ### Service Pattern
 - Services are `@Injectable()` and contain business logic
 - The current implementation uses an in-memory array for storage
 - Services generate UUIDs (via `uuid` package) for new entities
+- Services throw `NotFoundException` for missing resources (not the controller)
+- Services never mutate incoming DTOs — they spread into new objects
 
 ### DTO Pattern
-- DTOs use `class-validator` decorators (`@IsString`, `@IsNotEmpty`, `@IsOptional`, `@IsISO8601`) for validation
-- DTOs use `@ApiProperty` decorators for Swagger documentation
+- Three DTO types per resource: `CreateCourseDto` (input), `UpdateCourseDto` (partial input), `CourseDto` (response)
+- Input DTOs use `class-validator` decorators (`@IsString`, `@IsNotEmpty`, `@IsOptional`) for validation
+- Response DTOs use `@ApiProperty` decorators for Swagger documentation only
 - Global `ValidationPipe` is configured with `whitelist: true`, `forbidNonWhitelisted: true`, and `transform: true`
 
 ## Testing Conventions
@@ -101,11 +104,13 @@ Each feature is a self-contained NestJS module with its own controller, service,
 - Controller tests use Supertest against a real NestJS application instance (`Test.createTestingModule` + `app.init()`)
 - Service tests instantiate the service directly without the NestJS testing module
 - Each test case uses `beforeEach` to create a fresh app/service instance
+- Tests cover both success paths and error paths (404 for missing resources, 400 for invalid input)
+- Controller spec `ValidationPipe` config must match `main.ts` configuration
 
 ### Writing Tests
 When adding new features, follow these patterns:
-- **Service tests**: Direct instantiation, test each CRUD operation independently
-- **Controller tests**: Use Supertest with full app bootstrap, test HTTP status codes and response bodies, test validation rejection for invalid input
+- **Service tests**: Direct instantiation, test each CRUD operation independently, test `NotFoundException` for missing resources
+- **Controller tests**: Use Supertest with full app bootstrap, test HTTP status codes and response bodies, test validation rejection for invalid input, test 404 for all `:id` endpoints
 
 ## Code Style
 
@@ -125,7 +130,7 @@ When adding new features, follow these patterns:
 
 ## Configuration
 
-The app uses `@nestjs/config` with a centralized configuration file at `src/config/configuration.ts`. Environment variables:
+The app uses `@nestjs/config` (global) with a centralized configuration file at `src/config/configuration.ts`. Environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -134,10 +139,10 @@ The app uses `@nestjs/config` with a centralized configuration file at `src/conf
 | `DB_TYPE` | `postgres` | Database type (not yet connected) |
 | `DB_HOST` | `localhost` | Database host |
 | `DB_PORT` | `5432` | Database port |
-| `DB_USERNAME` | `root` | Database username |
-| `DB_PASSWORD` | `password` | Database password |
+| `DB_USERNAME` | *required* | Database username |
+| `DB_PASSWORD` | *required* | Database password |
 | `DB_DATABASE` | `testdb` | Database name |
-| `JWT_SECRET` | `your_secret_here` | JWT secret key |
+| `JWT_SECRET` | *required* | JWT secret key |
 | `JWT_EXPIRATION_TIME` | `60s` | JWT expiration |
 | `LOG_LEVEL` | `info` | Winston log level |
 | `LOG_DIR` | `./logs` | Log file directory |
@@ -147,14 +152,16 @@ The app uses `@nestjs/config` with a centralized configuration file at `src/conf
 - Custom middleware adds security headers: CSP, X-Content-Type-Options, X-Frame-Options, HSTS, X-XSS-Protection, Referrer-Policy, Permissions-Policy
 - `x-powered-by` header is disabled
 - Global ValidationPipe strips unknown properties and rejects non-whitelisted fields
+- Sensitive config (DB credentials, JWT secret) has no hardcoded fallback defaults — must be set via environment variables
 
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/ci.yml`) runs on PRs to `main`:
-1. Install dependencies (`npm install`)
+1. Install dependencies (`npm ci`)
 2. Run linter (`npm run lint`)
 3. Run tests (`npm test`)
-4. Build Docker image (tagged as `{package-name}:pr-{number}`)
+4. Build TypeScript (`npm run build`)
+5. Build Docker image (tagged as `{package-name}:pr-{number}`)
 
 ## Swagger/OpenAPI
 
@@ -162,17 +169,18 @@ Available at `/api` when the application is running. Configured in `main.ts` usi
 
 ## Docker
 
-The Dockerfile builds a production image:
-- Base: `node:18.12.0`
-- Installs deps, builds TypeScript, exposes port 3000
-- Runs `node dist/main`
+Multi-stage Dockerfile:
+- **Build stage**: `node:22-slim`, installs all deps, compiles TypeScript
+- **Production stage**: `node:22-slim`, installs production deps only, copies compiled `dist/`
+- Exposes port 3000, runs `node dist/main`
 
 ## Adding a New Feature Module
 
 1. Create a new directory under `src/modules/{feature-name}/`
-2. Create the module, controller, service, DTOs, and interfaces
-3. Add Swagger decorators to all controller methods and DTO properties
-4. Add class-validator decorators to all DTO properties
-5. Import the new module in `AppModule`
-6. Write service unit tests (`*.spec.ts`) and controller integration tests using Supertest
-7. Run `npm run lint` and `npm test` before committing
+2. Create the module, controller, service, and DTOs (`create-*.dto.ts`, `update-*.dto.ts`, `*.dto.ts`)
+3. Add Swagger decorators to all controller methods and response DTO properties
+4. Add class-validator decorators to all input DTO properties
+5. Throw `NotFoundException` from the service for missing resources
+6. Import the new module in `AppModule`
+7. Write service unit tests (`*.spec.ts`) and controller integration tests using Supertest
+8. Run `npm run lint`, `npm run build`, and `npm test` before committing

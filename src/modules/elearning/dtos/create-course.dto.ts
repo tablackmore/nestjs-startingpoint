@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-export class CourseDto {
-  @ApiProperty({ example: '1', description: 'Unique identifier' })
-  id: string;
-
+export class CreateCourseDto {
   @ApiProperty({
     example: 'Introduction to the admin panel',
     description: 'Title of the course',
   })
+  @IsString()
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty({
@@ -15,11 +15,7 @@ export class CourseDto {
       'An introductory course on the admin panel. Providing you with the basic skills required to setup account, users and alarms',
     description: 'Course description',
   })
+  @IsString()
+  @IsNotEmpty()
   description: string;
-
-  @ApiProperty({
-    example: '2026-03-01T12:00:00.000Z',
-    description: 'Creation date',
-  })
-  createdAt: Date;
 }

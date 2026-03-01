@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './modules/app.module';
 import { ConfigService } from '@nestjs/config';
-import { SecurityHeadersMiddleware } from '././middleware/security-headers.middleware';
+import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { logger } from './common/logger/logger.module';
 import { ValidationPipe } from '@nestjs/common';
 
@@ -12,18 +12,16 @@ async function bootstrap() {
   });
 
   // Security Headers
-  app.use(new SecurityHeadersMiddleware().use);
+  const securityMiddleware = new SecurityHeadersMiddleware();
+  app.use(securityMiddleware.use.bind(securityMiddleware));
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   // Enable automatic validation
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip away non-whitelisted properties
-      transform: true, // Automatically transform payloads to be objects typed according to their DTO classes
-      forbidNonWhitelisted: true, // Throw errors if non-whitelisted values are provided
-      transformOptions: {
-        enableImplicitConversion: true, // Automatically convert primitive types
-      },
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
     }),
   );
 
@@ -34,7 +32,7 @@ async function bootstrap() {
     .setTitle(configService.get<string>('app.name') ?? 'Default App Name')
     .setDescription('The API description')
     .setVersion('1.0')
-    .addTag('example')
+    .addTag('courses')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

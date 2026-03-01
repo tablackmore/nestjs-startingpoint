@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CourseDto } from './dtos/course.dto';
+import { CreateCourseDto } from './dtos/create-course.dto';
+import { UpdateCourseDto } from './dtos/update-course.dto';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -7,55 +9,60 @@ export class ElearningService {
   private readonly courses: CourseDto[] = [];
 
   findAll(): CourseDto[] {
-    return this.courses;
+    return [...this.courses];
   }
 
-  create(courseDto: CourseDto): CourseDto {
-    // Generate a unique ID if one isn't provided
-    if (!courseDto.id) {
-      courseDto.id = uuidv4();
-    }
+  create(createCourseDto: CreateCourseDto): CourseDto {
+    const course: CourseDto = {
+      ...createCourseDto,
+      id: uuidv4(),
+      createdAt: new Date(),
+    };
 
-    // Assume title, description, and createdAt are mandatory, and handle accordingly
-    // For example, set createdAt to the current timestamp if not provided
-    if (!courseDto.createdAt) {
-      courseDto.createdAt = new Date();
-    }
-
-    this.courses.push(courseDto);
-    return courseDto;
+    this.courses.push(course);
+    return course;
   }
 
   findOne(id: string): CourseDto {
-    return this.courses.find((course) => course.id === id);
+    const course = this.courses.find((c) => c.id === id);
+    if (!course) {
+      throw new NotFoundException(`Course with ID "${id}" not found`);
+    }
+    return course;
   }
 
-  update(id: string, courseDto: CourseDto): CourseDto {
-    const index = this.courses.findIndex((course) => course.id === id);
-    if (index !== -1) {
-      // Keep the original ID and createdAt date of the course being updated
-      courseDto.id = this.courses[index].id;
-      courseDto.createdAt = this.courses[index].createdAt;
-
-      this.courses[index] = courseDto;
-      return courseDto;
+  update(id: string, createCourseDto: CreateCourseDto): CourseDto {
+    const index = this.courses.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Course with ID "${id}" not found`);
     }
-    return null;
+
+    const updated: CourseDto = {
+      ...createCourseDto,
+      id: this.courses[index].id,
+      createdAt: this.courses[index].createdAt,
+    };
+
+    this.courses[index] = updated;
+    return updated;
   }
 
-  patch(id: string, courseUpdate: Partial<CourseDto>): CourseDto {
-    const course = this.findOne(id);
-    if (course) {
-      Object.assign(course, courseUpdate);
-      return course;
+  patch(id: string, updateCourseDto: UpdateCourseDto): CourseDto {
+    const index = this.courses.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Course with ID "${id}" not found`);
     }
-    return null;
+
+    const patched: CourseDto = { ...this.courses[index], ...updateCourseDto };
+    this.courses[index] = patched;
+    return patched;
   }
 
   delete(id: string): void {
-    const index = this.courses.findIndex((course) => course.id === id);
-    if (index !== -1) {
-      this.courses.splice(index, 1);
+    const index = this.courses.findIndex((c) => c.id === id);
+    if (index === -1) {
+      throw new NotFoundException(`Course with ID "${id}" not found`);
     }
+    this.courses.splice(index, 1);
   }
 }

@@ -3,13 +3,14 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Put,
 } from '@nestjs/common';
 import { ElearningService } from './elearning.service';
+import { CreateCourseDto } from './dtos/create-course.dto';
+import { UpdateCourseDto } from './dtos/update-course.dto';
 import { CourseDto } from './dtos/course.dto';
 import {
   ApiOperation,
@@ -37,56 +38,57 @@ export class ElearningController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new course' })
-  @ApiBody({ type: CourseDto })
+  @ApiBody({ type: CreateCourseDto })
   @ApiResponse({
     status: 201,
     description: 'The course has been successfully created.',
     type: CourseDto,
   })
-  create(@Body() courseDto: CourseDto): CourseDto {
-    return this.elearningService.create(courseDto);
+  create(@Body() createCourseDto: CreateCourseDto): CourseDto {
+    return this.elearningService.create(createCourseDto);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a course by id' })
   @ApiParam({ name: 'id', description: 'The course ID' })
   @ApiResponse({ status: 200, description: 'Found course', type: CourseDto })
-  @ApiResponse({ status: 404, description: 'Course not found' }) // Documenting the possible 404 response
+  @ApiResponse({ status: 404, description: 'Course not found' })
   findOne(@Param('id') id: string): CourseDto {
-    const course = this.elearningService.findOne(id);
-    if (!course) {
-      throw new NotFoundException(`Course with ID "${id}" not found`);
-    }
-    return course;
+    return this.elearningService.findOne(id);
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a course' })
   @ApiParam({ name: 'id', description: 'The course ID' })
-  @ApiBody({ type: CourseDto })
+  @ApiBody({ type: CreateCourseDto })
   @ApiResponse({
     status: 200,
     description: 'The course has been successfully updated.',
     type: CourseDto,
   })
-  update(@Param('id') id: string, @Body() courseDto: CourseDto): CourseDto {
-    return this.elearningService.update(id, courseDto);
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  update(
+    @Param('id') id: string,
+    @Body() createCourseDto: CreateCourseDto,
+  ): CourseDto {
+    return this.elearningService.update(id, createCourseDto);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Partially update a course' })
   @ApiParam({ name: 'id', description: 'The course ID' })
-  @ApiBody({ type: CourseDto })
+  @ApiBody({ type: UpdateCourseDto })
   @ApiResponse({
     status: 200,
     description: 'The course has been successfully updated.',
     type: CourseDto,
   })
+  @ApiResponse({ status: 404, description: 'Course not found' })
   patch(
     @Param('id') id: string,
-    @Body() courseDto: Partial<CourseDto>,
+    @Body() updateCourseDto: UpdateCourseDto,
   ): CourseDto {
-    return this.elearningService.patch(id, courseDto);
+    return this.elearningService.patch(id, updateCourseDto);
   }
 
   @Delete(':id')
@@ -96,6 +98,7 @@ export class ElearningController {
     status: 200,
     description: 'The course has been successfully deleted.',
   })
+  @ApiResponse({ status: 404, description: 'Course not found' })
   delete(@Param('id') id: string): void {
     this.elearningService.delete(id);
   }

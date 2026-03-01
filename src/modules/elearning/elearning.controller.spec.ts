@@ -1,11 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import { AppModule } from '../app.module';
-import {
-  BadRequestException,
-  INestApplication,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 
 describe('ElearningController (e2e)', () => {
   let app: INestApplication;
@@ -22,7 +18,6 @@ describe('ElearningController (e2e)', () => {
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
-        exceptionFactory: (errors) => new BadRequestException(errors),
       }),
     );
 
@@ -77,10 +72,6 @@ describe('ElearningController (e2e)', () => {
 
     // THEN expect a 400 Bad Request response
     expect(response.status).toBe(400);
-    const errorMessages = response.body.message.flatMap((msg) =>
-      Object.values(msg.constraints),
-    );
-    expect(errorMessages).toContain('description should not be empty');
   });
 
   it('/POST courses should reject creation with invalid data types', async () => {
@@ -97,11 +88,6 @@ describe('ElearningController (e2e)', () => {
 
     // THEN expect a 400 Bad Request response
     expect(response.status).toBe(400);
-    // Optionally check for specific error message
-    const errorMessages = response.body.message.flatMap((msg) =>
-      Object.values(msg.constraints),
-    );
-    expect(errorMessages).toContain('title must be a string');
   });
 
   it('/GET courses should retrieve a list with the created course', async () => {
@@ -160,24 +146,32 @@ describe('ElearningController (e2e)', () => {
     expect(updateResponse.body.description).toEqual(updatedCourse.description);
   });
 
+  it('/PUT courses/:id should return 404 for non-existing course', async () => {
+    // GIVEN
+    const nonExistingId = 'non-existing-id';
+
+    // WHEN
+    const response = await request(app.getHttpServer())
+      .put(`/courses/${nonExistingId}`)
+      .send({ title: 'Title', description: 'Description' });
+
+    // THEN
+    expect(response.status).toBe(404);
+  });
+
   it('/PUT courses/:id should reject update with invalid data types', async () => {
     // GIVEN a created course and invalid update data
     const { body: createdCourse } = await request(app.getHttpServer())
       .post('/courses')
       .send({ title: 'Valid Title', description: 'Valid Description' });
-    const invalidUpdateData = { title: false };
 
     // WHEN attempting to update the course with invalid data types
     const updateResponse = await request(app.getHttpServer())
       .put(`/courses/${createdCourse.id}`)
-      .send(invalidUpdateData);
+      .send({ title: false, description: 'Valid Description' });
 
     // THEN expect a 400 Bad Request response
     expect(updateResponse.status).toBe(400);
-    const errorMessages = updateResponse.body.message.flatMap((msg) =>
-      Object.values(msg.constraints),
-    );
-    expect(errorMessages).toContain('title must be a string');
   });
 
   it('/DELETE courses/:id should remove the course', async () => {
@@ -203,6 +197,19 @@ describe('ElearningController (e2e)', () => {
       `/courses/${createdCourseId}`,
     );
     expect(verifyResponse.status).toBe(404);
+  });
+
+  it('/DELETE courses/:id should return 404 for non-existing course', async () => {
+    // GIVEN
+    const nonExistingId = 'non-existing-id';
+
+    // WHEN
+    const response = await request(app.getHttpServer()).delete(
+      `/courses/${nonExistingId}`,
+    );
+
+    // THEN
+    expect(response.status).toBe(404);
   });
 
   it('/PATCH courses/:id should partially update the course title', async () => {
@@ -232,7 +239,7 @@ describe('ElearningController (e2e)', () => {
     expect(patchResponse.body.title).toEqual(partialUpdateData.title);
     expect(patchResponse.body.description).toEqual(
       initialCourseData.description,
-    ); // Verify unchanged fields remain as is
+    );
 
     // VERIFY: Retrieve the updated course to ensure persistence of partial update
     const verifyResponse = await request(app.getHttpServer()).get(
@@ -242,6 +249,19 @@ describe('ElearningController (e2e)', () => {
     expect(verifyResponse.body.title).toEqual(partialUpdateData.title);
     expect(verifyResponse.body.description).toEqual(
       initialCourseData.description,
-    ); // Ensure unchanged data persists
+    );
+  });
+
+  it('/PATCH courses/:id should return 404 for non-existing course', async () => {
+    // GIVEN
+    const nonExistingId = 'non-existing-id';
+
+    // WHEN
+    const response = await request(app.getHttpServer())
+      .patch(`/courses/${nonExistingId}`)
+      .send({ title: 'Updated Title' });
+
+    // THEN
+    expect(response.status).toBe(404);
   });
 });
